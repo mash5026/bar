@@ -51,22 +51,38 @@ class Product(models.Model):
     total_price = models.DecimalField(max_digits=15, decimal_places=0, default=0, editable=False)
     service_cost = models.DecimalField(max_digits=10, decimal_places=0)
     suggested_price = models.DecimalField(max_digits=15, decimal_places=0, default=0, editable=False)
+    menu_price = models.DecimalField(max_digits=15, decimal_places=0, default=0)
+    percentage_cost = models.DecimalField(max_digits=5, decimal_places=2, default=0, editable=False)
     description = models.TextField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)  # ابتدا محصول ذخیره شود تا مقدار ID دریافت کند
 
-        # محاسبه مقدار `total_price` فقط در صورتی که محصول دارای `ProductDetails` باشد
+        # محاسبه مقدار `total_price`
         total_price = sum(detail.total for detail in self.productdetails_set.all())
-        
-        # اگر مقدار `total_price` محاسبه شد، آن را به‌روز کنیم
+
+        # اگر مقدار `total_price` محاسبه شد، مقدارهای دیگر را به‌روز کنیم
         if total_price > 0:
             self.total_price = total_price
             self.suggested_price = (self.total_price * self.factor_coefficient.coefficient) + self.service_cost
-            super().save(update_fields=["total_price", "suggested_price"])  # فقط این فیلدها را ذخیره کن
+            
+            # محاسبه `percentage_cost` فقط در صورتی که `menu_price` مقدار معتبر داشته باشد
+            if self.menu_price > 0:
+                self.percentage_cost = (self.total_price / self.menu_price) * 100
+            else:
+                self.percentage_cost = 0  # جلوگیری از تقسیم بر صفر
+
+            # ذخیره فیلدهای محاسبه‌شده
+            super().save(update_fields=["total_price", "suggested_price", "percentage_cost"])
     
     def __str__(self):
         return self.name
+    
+    def get_categories(self):
+        categories = self.productdetails_set.values_list('recipe__category__name_fa', flat=True).distinct()
+        return " ⟶ ".join(categories) if categories else "بدون دسته‌بندی"
+
+    get_categories.short_description = "دسته بندی"
     
     def persian_total_price(self):
         return "ریال {:,}".format(self.total_price)
@@ -76,6 +92,9 @@ class Product(models.Model):
     
     def persian_suggested_price(self):
         return "ریال {:,}".format(self.suggested_price)
+    
+    def persian_menu_price(self):
+        return "ریال {:,}".format(self.menu_price)
 
 class ProductDetails(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)

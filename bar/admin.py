@@ -25,8 +25,9 @@ class FactorCoefficientAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ("name", "persian_total_price", "factor_coefficient", "persian_service_cost", "persian_suggested_price")
+    list_display = ("name", "get_categories", "persian_total_price", "factor_coefficient", "persian_service_cost", "persian_suggested_price", "persian_menu_price", "percentage_cost")
     search_fields = ("name",)
+    list_display_links = ("get_categories", "name")
     inlines = [ProductDetailsInline]
 
 @admin.register(ProductDetails)
