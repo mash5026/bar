@@ -86,7 +86,7 @@ class ProductDetails(models.Model):
     total = models.DecimalField(max_digits=15, decimal_places=0, editable=False)
 
     def save(self, *args, **kwargs):
-        self.price = self.recipe.unit_price
+        self.price = self.recipe.total_price
 
         if self.unit == Unit.GRAM:
             self.total = (self.price * Decimal(self.quantity)) / Decimal(1000)
